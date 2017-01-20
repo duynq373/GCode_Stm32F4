@@ -89,7 +89,7 @@ int main(void)
   
 
   /* USER CODE BEGIN 2 */
-     
+     GCode_Intprtr();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -97,7 +97,7 @@ int main(void)
   while (1)
   {
   /* USER CODE END WHILE */
-    //GCode_Intprtr();
+    
   /* USER CODE BEGIN 3 */
    
   }
