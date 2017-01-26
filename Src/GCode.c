@@ -12,27 +12,21 @@
 /* Private function prototypes -----------------------------------------------*/
 static void D_InProgress (void);
 static boolean _CalcNextCoord (void);
-static void _Curve_Init(void);
-static void _LinearCal_Init (void);
-static boolean _LinearCal (LinearStruct* a, LinearStruct* b, LinearStruct* c);
-static boolean _CurveCal (CurveStruct* axis_1, CurveStruct* axis_2, CurveParam* params);
 static void _IsStep(Coord* _current, Coord* _cal);
 static void SendPulse (void);
 
 /* Private variables ---------------------------------------------------------*/
-static uint8_t GCode_state      = GCODE_WAIT;
-static uint8_t GCode_command    = G_NULL;
-static Coord Current;
-static Coord Target;
-static Coord Cal;
-static LinearStruct LinearStructMax,LinearStruct_1,LinearStruct_2;
-static CurveStruct Axis_1, Axis_2;
-static real32 dx,dy,dz;
-static boolean stepFlag_x, stepFlag_y, stepFlag_z;
-static CurveParam Cur_Params;
-real32 Cir_R;
+static uint8_t GCode_State      = GCODE_WAIT;
+static uint8_t GCode_Command    = G_NULL;
+Coord Current, Target, Cal;
+    /*Curve Calculation*/
+CurveStruct Axis_1, Axis_2;
+CurveParam Cur_Params;
 real32 RelativeI, RelativeJ, RelativeK;
+    /*Linear Calculation*/
+LinearStruct LinearStructMax,LinearStruct_1,LinearStruct_2;
 
+static boolean stepFlag_x, stepFlag_y, stepFlag_z;
 
 /*  Interpreter state machine:
     - WAIT: wait for GCODE command from PC via UART
@@ -74,10 +68,10 @@ void GCode_Intprtr (void)
 	Target.y = (real32)30;
 	Target.z = (real32)0;
    
-    GCode_state = GCODE_IN_PROGRESS;
+    GCode_State = GCODE_IN_PROGRESS;
     //END STUB
     
-    switch (GCode_state)
+    switch (GCode_State)
     {
         case GCODE_WAIT:
             //code here
@@ -93,7 +87,7 @@ void GCode_Intprtr (void)
             break;
         
         default:
-            GCode_state = GCODE_WAIT;
+            GCode_State = GCODE_WAIT;
             break;
     }
 }
@@ -125,10 +119,10 @@ static boolean _CalcNextCoord (void)
 {
     boolean ret = FALSE;
     // STUB
-    GCode_command = G_02;
+    GCode_Command = G_02;
     // END STUB
     
-    switch (GCode_command)
+    switch (GCode_Command)
     {
         case G_00:
             //Code here
@@ -154,275 +148,13 @@ static boolean _CalcNextCoord (void)
             break;
         
         default:
-            GCode_command = G_NULL;
+            GCode_Command = G_NULL;
             break;
     }
     return ret;
 }
 
-static void _LinearCal_Init (void)
-{
-    dx = Target.x-Current.x;
-	dy = Target.y-Current.y;
-	dz = Target.z-Current.z;
 
-	if ((fabs(dx) >= fabs(dy)) && (fabs(dx) >= fabs(dz)))
-	{
-		LinearStructMax.current = &Current.x;
-		LinearStructMax.target  = &Target.x;
-		LinearStructMax.cal		= &Cal.x;
-		LinearStructMax.delta	= Target.x - Current.x;
-
-		LinearStruct_1.current 	= &Current.y;
-		LinearStruct_1.target  	= &Target.y;
-		LinearStruct_1.cal		= &Cal.y;
-		LinearStruct_1.delta	= Target.y - Current.y;
-
-		LinearStruct_2.current 	= &Current.z;
-		LinearStruct_2.target  	= &Target.z;
-		LinearStruct_2.cal		= &Cal.z;
-		LinearStruct_2.delta	= Target.z - Current.z;
-	}
-	else if ((fabs(dy) >= fabs(dx)) && (fabs(dy) >= fabs(dz)))
-	{
-		LinearStructMax.current = &Current.y;
-		LinearStructMax.target  = &Target.y;
-		LinearStructMax.cal		= &Cal.y;
-		LinearStructMax.delta	= Target.y - Current.y;
-
-		LinearStruct_1.current 	= &Current.x;
-		LinearStruct_1.target  	= &Target.x;
-		LinearStruct_1.cal		= &Cal.x;
-		LinearStruct_1.delta	= Target.x - Current.x;
-
-		LinearStruct_2.current 	= &Current.z;
-		LinearStruct_2.target  	= &Target.z;
-		LinearStruct_2.cal		= &Cal.z;
-		LinearStruct_2.delta	= Target.z - Current.z;
-	}
-	else
-	{
-		LinearStructMax.current = &Current.z;
-		LinearStructMax.target  = &Target.z;
-		LinearStructMax.cal		= &Cal.z;
-		LinearStructMax.delta	= Target.z - Current.z;
-
-		LinearStruct_1.current 	= &Current.y;
-		LinearStruct_1.target  	= &Target.y;
-		LinearStruct_1.cal		= &Cal.y;
-		LinearStruct_1.delta	= Target.y - Current.y;
-		
-		LinearStruct_2.current 	= &Current.x;
-		LinearStruct_2.target  	= &Target.x;
-		LinearStruct_2.cal		= &Cal.x;
-		LinearStruct_2.delta	= Target.x - Current.x;
-	}
-}
-
-/*
-NOTE:   fabs(da) is maximum
-b->cal, c->cal init = 0 => NOTE to handle the initialize in linear fucntion LinearStruct_1.cal is set to 2*steplength at init
-*/
-static boolean _LinearCal (LinearStruct* a, LinearStruct* b, LinearStruct* c)
-{
-	boolean ret = FALSE;
-
-	if ( fabs(*(a->target) - *(a->current)) > (STEP_LENGTH_MM/2) )
-	{
-		*(a->cal) = STEP_LENGTH_MM;	
-		ret = TRUE;
-
-	}
-	if ( fabs(*(b->target) - *(b->current)) > (STEP_LENGTH_MM/2) )
-	{
-		*(b->cal) = *(b->cal) + (b->delta / a->delta)*STEP_LENGTH_MM;
-		ret = TRUE;
-	}
-	if ( fabs(*(c->target) - *(c->current)) > (STEP_LENGTH_MM/2) )
-	{
-		*(c->cal) = *(c->cal) + (c->delta / a->delta)*STEP_LENGTH_MM;
-		ret = TRUE;
-	}
-    
-	return ret;
-}
-
-void _Curve_Init(void)
-{
-	real32 temp_angle;
-
-	Cur_Params.Plane = X_Y_PLANE;
-
-	//Select the current working plane
-	switch (Cur_Params.Plane)
-	{
-		case X_Y_PLANE:
-			Axis_1.current = &Current.x;
-			Axis_1.target  = &Target.x;
-			Axis_1.cal	   = &Cal.x;
-			Cur_Params.CenterAxis_1 = Current.x + RelativeI; //Take from I
-
-			Axis_2.current = &Current.y;
-			Axis_2.target  = &Target.y;
-			Axis_2.cal	   = &Cal.y;
-			Cur_Params.CenterAxis_2 = Current.y + RelativeJ; //Take from J
-			break;
-
-		case Y_Z_PLANE:
-			Axis_1.current = &Current.y;
-			Axis_1.target  = &Target.y;
-			Axis_1.cal	   = &Cal.y;
-			Cur_Params.CenterAxis_1 = Current.y + RelativeJ; //Take from J
-
-			Axis_2.current = &Current.z;
-			Axis_2.target  = &Target.z;
-			Axis_2.cal	   = &Cal.z;
-			Cur_Params.CenterAxis_2 = Current.z + RelativeK; //Take from K
-			break;
-
-		case Z_X_PLANE:
-			Axis_1.current = &Current.z;
-			Axis_1.target  = &Target.z;
-			Axis_1.cal	   = &Cal.z;
-			Cur_Params.CenterAxis_1 = Current.z + RelativeK; //Take from K
-
-			Axis_2.current = &Current.x;
-			Axis_2.target  = &Target.x;
-			Axis_2.cal	   = &Cal.x;
-			Cur_Params.CenterAxis_2 = Current.x + RelativeI; //Take from I
-			break;
-
-		default:
-			// Send out some warning
-			break;
-	}
-
-	temp_angle = atan(fabs(*(Axis_2.current) - Cur_Params.CenterAxis_2) / fabs(*(Axis_1.current) - Cur_Params.CenterAxis_1));
-	if ((*(Axis_2.current) - Cur_Params.CenterAxis_2) > 0) // I and IV
-	{
-		// IV
-		if ((*(Axis_1.current) - Cur_Params.CenterAxis_1) < 0)
-		{
-			Cur_Params.CurrentAngle = 2*PI - temp_angle;
-		}
-		// I: unchange
-		else
-		{
-			Cur_Params.CurrentAngle = temp_angle;
-		}
-	}
-	else
-	{
-		// III
-		if ((*(Axis_1.current) - Cur_Params.CenterAxis_1) < 0)
-		{
-			Cur_Params.CurrentAngle = temp_angle + PI;
-		}
-		//II
-		else
-		{
-			Cur_Params.CurrentAngle = PI - temp_angle;
-		}
-	}
-
-	temp_angle = atan(fabs(*(Axis_2.target) - Cur_Params.CenterAxis_2) / fabs(*(Axis_1.target) - Cur_Params.CenterAxis_1));
-		if ((*(Axis_2.target) - Cur_Params.CenterAxis_2) > 0) // I and IV
-		{
-			// IV
-			if ((*(Axis_1.target) - Cur_Params.CenterAxis_1) < 0)
-			{
-				Cur_Params.TargetAngle = 2*PI - temp_angle;
-			}
-			// I: unchange
-			else
-			{
-				Cur_Params.TargetAngle = temp_angle;
-			}
-		}
-		else
-		{
-			// III
-			if ((*(Axis_1.target) - Cur_Params.CenterAxis_1) < 0)
-			{
-				Cur_Params.TargetAngle = temp_angle + PI;
-			}
-			//II
-			else
-			{
-				Cur_Params.TargetAngle = PI - temp_angle;
-			}
-		}
-
-		Cir_R = sqrt((*(Axis_2.current) - Cur_Params.CenterAxis_2) * (*(Axis_2.current) - Cur_Params.CenterAxis_2) + 
-					(*(Axis_1.current) - Cur_Params.CenterAxis_1) * (*(Axis_1.current) - Cur_Params.CenterAxis_1));
-		Cur_Params.CurveStepLength = STEP_LENGTH_MM / Cir_R;
-
-		if (Cur_Params.ClockWise)
-		{
-			temp_angle = Cur_Params.TargetAngle - Cur_Params.CurrentAngle;
-			if ((temp_angle < 0) || ( fabs(temp_angle) < (Cur_Params.CurveStepLength / 2)) )
-			{
-				temp_angle += 2*PI;
-			}
-			else
-			{
-				//Keep unchanged
-			}
-			Cur_Params.RunTime = (uint32_t)(temp_angle / Cur_Params.CurveStepLength) + 1;
-		}
-		else
-		{
-			temp_angle = Cur_Params.CurrentAngle - Cur_Params.TargetAngle;
-			if ((temp_angle < 0) || ( fabs(temp_angle) < (Cur_Params.CurveStepLength / 2)) )
-			{
-				temp_angle += 2*PI;
-			}
-			else
-			{
-				//Keep unchanged
-			}
-			Cur_Params.RunTime = (uint32_t)(temp_angle / Cur_Params.CurveStepLength) + 1;
-		}
-}
-
-boolean _CurveCal (CurveStruct* axis_1, CurveStruct* axis_2, CurveParam* params)
-{
-	boolean ret = FALSE;
-	real32 temp_angle;
-
-	if (params->RunTime != 0)
-	{
-		if (params->ClockWise)
-		{
-			temp_angle = params->CurrentAngle - params->CurveStepLength;
-			if (temp_angle < 0)
-			{
-				temp_angle += 2*PI;
-			}
-		}
-		else
-		{
-			temp_angle = params->CurrentAngle + params->CurveStepLength;
-			if (temp_angle > 2*PI)
-			{
-				temp_angle -= 2*PI;
-			}
-		}
-
-		*(axis_1->cal) = *(axis_1->cal) + Cir_R*(sin(temp_angle) - sin(params->CurrentAngle));
-		*(axis_2->cal) = *(axis_2->cal) + Cir_R*(cos(params->CurrentAngle) - cos(temp_angle));
-
-		params->CurrentAngle = temp_angle;
-		params->RunTime--;
-		ret = TRUE;
-	}
-	else
-	{
-		ret = FALSE;
-	}
-
-	return ret;
-}
 
 
 static void _IsStep (Coord* _current, Coord* _cal)
