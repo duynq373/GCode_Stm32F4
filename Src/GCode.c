@@ -2,12 +2,13 @@
   ******************************************************************************
   * File Name          : GCode.c
   * Description        : GCode Interpreter implementation
-  * Author	           : duynq373@gmail.com
+  * Author               : duynq373@gmail.com
   ******************************************************************************
   */
  
 /* Includes ------------------------------------------------------------------*/
 #include "GCode.h"
+
   
 /* Private function prototypes -----------------------------------------------*/
 static void D_InProgress (void);
@@ -16,13 +17,19 @@ static void _IsStep(Coord* _current, Coord* _cal);
 static void SendPulse (void);
 
 /* Private variables ---------------------------------------------------------*/
+
+real32 steplength_x = (real32)0.01;       /*    steplength for X axis*/
+real32 steplength_y = (real32)0.1;        /*    steplength for Y axis*/
+real32 steplength_z = (real32)0.1;        /*    steplength for Z axis*/
+
 static uint8_t GCode_State      = GCODE_WAIT;
 static uint8_t GCode_Command    = G_NULL;
+static boolean InitFlag = FALSE;
 Coord Current, Target, Cal;
     /*Curve Calculation*/
 CurveStruct Axis_1, Axis_2;
 CurveParam Cur_Params;
-real32 RelativeI, RelativeJ, RelativeK;
+real32 RelativeI, RelativeJ, RelativeK;    /* relative values of x, y, z to indentify the center in curve command*/
     /*Linear Calculation*/
 LinearStruct LinearStructMax,LinearStruct_1,LinearStruct_2;
 
@@ -38,35 +45,35 @@ void GCode_Intprtr (void)
     //STUB for read command from PC
     //For Linear
     // Cal.x = (real32)0;
-	// Cal.y = (real32)0;
-	// Cal.z = (real32)0;
+    // Cal.y = (real32)0;
+    // Cal.z = (real32)0;
 
-	// Current.x = (real32)0;
-	// Current.y = (real32)4;
-	// Current.z = (real32)1;
+    // Current.x = (real32)0;
+    // Current.y = (real32)4;
+    // Current.z = (real32)1;
 
-	// Target.x = (real32)100;
-	// Target.y = (real32)4;
-	// Target.z = (real32)1;
+    // Target.x = (real32)100;
+    // Target.y = (real32)4;
+    // Target.z = (real32)1;
     
     //For Curve
-    RelativeI = -30;
-	RelativeJ = -30;
-	RelativeK = 1;
+    RelativeI = -50;
+    RelativeJ = -50;
+    RelativeK = 1;
 
-	Cur_Params.ClockWise = FALSE;
+    Cur_Params.ClockWise = FALSE;
 
-	Cal.x = (real32)0;
-	Cal.y = (real32)0;
-	Cal.z = (real32)0;
+    Cal.x = (real32)0;
+    Cal.y = (real32)0;
+    Cal.z = (real32)0;
 
-	Current.x = (real32)30;
-	Current.y = (real32)30;
-	Current.z = (real32)0;
+    Current.x = (real32)50;
+    Current.y = (real32)50;
+    Current.z = (real32)0;
 
-	Target.x = (real32)30;
-	Target.y = (real32)30;
-	Target.z = (real32)0;
+    Target.x = (real32)50;
+    Target.y = (real32)50;
+    Target.z = (real32)0;
    
     GCode_State = GCODE_IN_PROGRESS;
     //END STUB
@@ -101,6 +108,7 @@ void GCode_Intprtr (void)
 */
 static void D_InProgress (void)
 {
+    InitFlag = TRUE;
     while (_CalcNextCoord())
     {
         _IsStep(&Current, &Cal);
@@ -130,9 +138,10 @@ static boolean _CalcNextCoord (void)
         
         case G_01:
             //Code here
-            if ((LinearStructMax.cal == NULL) || (fabs(*(LinearStructMax.cal)) > STEP_LENGTH_MM))
+            if (InitFlag)
             {
                 _LinearCal_Init();
+                InitFlag = FALSE;
             }
             ret  = _LinearCal(&LinearStructMax, &LinearStruct_1, &LinearStruct_2);
             break;
@@ -140,9 +149,10 @@ static boolean _CalcNextCoord (void)
         case G_02:
         case G_03:
             //Code here
-            if ((Axis_1.cal == NULL) || (fabs(*(Axis_1.cal)) > STEP_LENGTH_MM))
+            if (InitFlag)
             {
                 _Curve_Init();
+                InitFlag = FALSE;
             }
             ret  = _CurveCal(&Axis_1, &Axis_2, &Cur_Params); 
             break;
@@ -160,53 +170,57 @@ static boolean _CalcNextCoord (void)
 static void _IsStep (Coord* _current, Coord* _cal)
 {
 
-	if ( (fabs(_cal->x) > STEP_LENGTH_MM) || ( fabs(fabs(_cal->x) - STEP_LENGTH_MM) < PRECISION))
-	{
-		if (_cal->x > 0)
-		{
-			_current->x -= STEP_LENGTH_MM;
-			_cal->x -= STEP_LENGTH_MM;
-		}
-		else
-		{
-			_current->x += STEP_LENGTH_MM;
-			_cal->x += STEP_LENGTH_MM;
-		}
-		
-		//set 1 for output flag
+    if ( (fabs(_cal->x) > steplength_x) || ( fabs(fabs(_cal->x) - steplength_x) < PRECISION))
+    {
+        //One is positive pulse, one is negative pulse
+        if (_cal->x > 0)
+        {
+            _current->x -= steplength_x;
+            _cal->x -= steplength_x;
+        }
+        else
+        {
+            _current->x += steplength_x;
+            _cal->x += steplength_x;
+        }
+        
+        //set 1 for output flag
         stepFlag_x = TRUE;
-	}
-
-	if ( (fabs(_cal->y) > STEP_LENGTH_MM) || ( fabs(fabs(_cal->y) - STEP_LENGTH_MM) < PRECISION))
-	{
-		if (_cal->y > 0)
-		{
-			_current->y -= STEP_LENGTH_MM;
-			_cal->y -= STEP_LENGTH_MM;
-		}
-		else
-		{
-			_current->y += STEP_LENGTH_MM;
-			_cal->y += STEP_LENGTH_MM;
-		}
-		//set 1 for output flag
+    }
+    
+    if ( (fabs(_cal->y) > steplength_y) || ( fabs(fabs(_cal->y) - steplength_y) < PRECISION))
+    {
+        if (_cal->y > 0)
+        {
+            _current->y -= steplength_y;
+            _cal->y -= steplength_y;
+        }
+        else
+        {
+            _current->y += steplength_y;
+            _cal->y += steplength_y;
+        }
+        
+        //set 1 for output flag
         stepFlag_y = TRUE;
-	}
-	if ( (fabs(_cal->z) > STEP_LENGTH_MM) || ( fabs(fabs(_cal->z) - STEP_LENGTH_MM) < PRECISION))
-	{
-		if (_cal->z > 0)
-		{
-			_current->z -= STEP_LENGTH_MM;
-			_cal->z -= STEP_LENGTH_MM;
-		}
-		else
-		{
-			_current->z += STEP_LENGTH_MM;
-			_cal->z += STEP_LENGTH_MM;
-		}
-		//set 1 for output flag
+    }
+
+    if ( (fabs(_cal->z) > steplength_z) || ( fabs(fabs(_cal->z) - steplength_z) < PRECISION))
+    {
+        if (_cal->z > 0)
+        {
+            _current->z -= steplength_z;
+            _cal->z -= steplength_z;
+        }
+        else
+        {
+            _current->z += steplength_z;
+            _cal->z += steplength_z;
+        }
+
+        //set 1 for output flag
         stepFlag_z = TRUE;
-	}
+    }
 }
 
 static void SendPulse (void)

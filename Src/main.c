@@ -64,7 +64,7 @@ void Init (void);
 /* USER CODE BEGIN 0 */
 void Init (void)
 {
-	/* MCU Configuration----------------------------------------------------------*/
+    /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();

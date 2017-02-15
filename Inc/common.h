@@ -2,12 +2,13 @@
   ******************************************************************************
   * File Name          : common.h
   * Description        : Header file for common configuration
-  * Author	           : duynq373@gmail.com
+  * Author             : duynq373@gmail.com
   ******************************************************************************
   */
   
 /* Includes ------------------------------------------------------------------*/
 #include <math.h> // replace by arm lib for math
+#include "arm_math.h"
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __COMMON_H
@@ -28,6 +29,8 @@ typedef signed char     boolean;
 #define     MAX_SPEED       1               /*Depend on speed of output pulse and threshold of machine*/
 #define     PRECISION       (float)0.0001
 
+/*	Set of coordinate (x,y,z)
+*/
 typedef struct
 {
     real32 x;

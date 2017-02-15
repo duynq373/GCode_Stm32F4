@@ -2,7 +2,7 @@
   ******************************************************************************
   * File Name          : GCode.h
   * Description        : Header file for GCode Interpreter implementation
-  * Author	           : duynq373@gmail.com
+  * Author             : duynq373@gmail.com
   ******************************************************************************
   */
   
