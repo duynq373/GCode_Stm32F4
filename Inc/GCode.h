@@ -26,7 +26,13 @@ void GCode_Intprtr (void);
 
 /* Private variables ---------------------------------------------------------*/
 
+/* Import variables ----------------------------------------------------------*/
+extern UART_HandleTypeDef huart2;
+
 /* Macro defines -------------------------------------------------------------*/
+
+/*UART BUFFER*/
+#define     UART_BUFFER_LENGTH      38
 /* Function like macro*/
 #define     PULSE_X_ON      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET) 
 #define     PULSE_Y_ON      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET) 

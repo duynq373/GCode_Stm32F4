@@ -81,15 +81,22 @@ void Init (void)
 
 int main(void)
 {
-
+    //uint8_t rcv_bf[38];
   /* USER CODE BEGIN 1 */
     Init();
+    
+    // Init for GCode state machine
+    //GCode_State = GCODE_WAIT;
+    Current.x = (real32)0;
+    Current.y = (real32)0;
+    Current.z = (real32)0;
+    //Cur_Params.Plane
   /* USER CODE END 1 */
 
   
 
   /* USER CODE BEGIN 2 */
-     GCode_Intprtr();
+     
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -97,9 +104,9 @@ int main(void)
   while (1)
   {
   /* USER CODE END WHILE */
-    
+      
   /* USER CODE BEGIN 3 */
-    
+    GCode_Intprtr();
   }
   /* USER CODE END 3 */
 
@@ -237,6 +244,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  
+  /* UART TX GPIO pin configuration  */
+  GPIO_InitStruct.Pin       = GPIO_PIN_2;
+  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull      = GPIO_NOPULL;
+  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH  ;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 
 }
 

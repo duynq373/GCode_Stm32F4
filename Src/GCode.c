@@ -12,6 +12,8 @@
   
 /* Private function prototypes -----------------------------------------------*/
 static void D_InProgress (void);
+static boolean _IsNewCommandReceived(void);
+static real32 FloatExtract (uint8_t index, uint8_t* data);
 static boolean _CalcNextCoord (void);
 static void _IsStep(Coord* _current, Coord* _cal);
 static void SendPulse (void);
@@ -57,40 +59,54 @@ void GCode_Intprtr (void)
     // Target.z = (real32)1;
     
     //For Curve
-    RelativeI = -50;
-    RelativeJ = -50;
-    RelativeK = 1;
+    // RelativeI = -50;
+    // RelativeJ = -50;
+    // RelativeK = 1;
 
-    Cur_Params.ClockWise = FALSE;
+    // Cur_Params.ClockWise = FALSE;
 
-    Cal.x = (real32)0;
-    Cal.y = (real32)0;
-    Cal.z = (real32)0;
+    // Cal.x = (real32)0;
+    // Cal.y = (real32)0;
+    // Cal.z = (real32)0;
 
-    Current.x = (real32)50;
-    Current.y = (real32)50;
-    Current.z = (real32)0;
+    // Current.x = (real32)50;
+    // Current.y = (real32)50;
+    // Current.z = (real32)0;
 
-    Target.x = (real32)50;
-    Target.y = (real32)50;
-    Target.z = (real32)0;
+    // Target.x = (real32)50;
+    // Target.y = (real32)50;
+    // Target.z = (real32)0;
    
-    GCode_State = GCODE_IN_PROGRESS;
+    // GCode_State = GCODE_IN_PROGRESS;
     //END STUB
-    
+    uint8_t trm_bf = 1;
     switch (GCode_State)
     {
         case GCODE_WAIT:
             //code here
+            //wait and receive params
+            if (_IsNewCommandReceived())
+            {
+                GCode_State = GCODE_IN_PROGRESS;
+            }
+            //else
+            //{
+                /*Do nothing*/
+                /* GCode_State = GCODE_WAIT;*/
+            //}
             break;
         
         case GCODE_IN_PROGRESS:
             //code here
             D_InProgress();
+            GCode_State = GCODE_DONE;
             break;
         
         case GCODE_DONE:
             //code here
+            // send feedback to PC
+            HAL_UART_Transmit(&huart2,&trm_bf,1,500);
+            GCode_State = GCODE_WAIT;
             break;
         
         default:
@@ -127,7 +143,7 @@ static boolean _CalcNextCoord (void)
 {
     boolean ret = FALSE;
     // STUB
-    GCode_Command = G_02;
+    //GCode_Command = G_02;
     // END STUB
     
     switch (GCode_Command)
@@ -265,4 +281,79 @@ static void SendPulse (void)
     stepFlag_x = FALSE;
     stepFlag_y = FALSE;
     stepFlag_z = FALSE;
+}
+
+
+static boolean _IsNewCommandReceived(void)
+{
+    boolean ret = FALSE;
+    uint8_t rcv_bf[UART_BUFFER_LENGTH];
+    uint32_t temp = 0;
+    //real32 temp_f = 0;
+    if (HAL_UART_Receive(&huart2,rcv_bf,UART_BUFFER_LENGTH,500) == HAL_OK)
+    {
+        /*Calculate the command*/
+        temp = (rcv_bf[0] - 0x30) *10 + (rcv_bf[1] - 0x30);     // temporary solution for hex and ascii
+        switch(temp)
+        {
+            case G_00:
+                GCode_Command = G_00;
+            break;
+            
+            case G_01:
+                GCode_Command = G_01;
+            break;
+            
+            case G_02:
+                GCode_Command = G_02;
+                Cur_Params.ClockWise = TRUE;
+            break;
+            
+            case G_03:
+                GCode_Command = G_03;
+                Cur_Params.ClockWise = FALSE;
+            break;
+            
+            default:
+                GCode_Command = G_NULL;
+            break;
+        }
+        
+        /*Calculate the Target Coordinates*/
+        Target.x = FloatExtract(2, rcv_bf);
+        Target.y = FloatExtract(8, rcv_bf);
+        Target.z = FloatExtract(14, rcv_bf);
+                   
+        /*Calculate the Relative values*/
+        if ((GCode_Command == G_02) || (GCode_Command == G_03))
+        {
+            RelativeI = FloatExtract(20, rcv_bf);
+            RelativeJ = FloatExtract(26, rcv_bf);
+            RelativeK = FloatExtract(32, rcv_bf);
+        }
+        
+        ret = TRUE;
+    }
+    else
+    {
+        /*Do nothing*/
+    }
+    
+    return ret;
+}
+
+static real32 FloatExtract (uint8_t index, uint8_t* data)
+{
+    real32 ret;
+    ret = (real32)((data[index+1] - 0x30)*100) + (real32)((data[index+2] - 0x30)*10) + (real32)(data[index+3] - 0x30) + 
+                                  ((real32)(data[index+4] - 0x30))*0.1 + ((real32)(data[index+5]) - 0x30)*0.01;
+    if (data[index] == '+')
+    {
+        return ret;
+    }
+    else
+    {
+        return -ret;
+    }
+    
 }

@@ -50,36 +50,36 @@ void _Curve_Init(void)
         case X_Y_PLANE:
             Axis_1.current = &Current.x;
             Axis_1.target  = &Target.x;
-            Axis_1.cal       = &Cal.x;
+            Axis_1.cal     = &Cal.x;
             Cur_Params.CenterAxis_1 = Current.x + RelativeI; //Take from I
 
             Axis_2.current = &Current.y;
             Axis_2.target  = &Target.y;
-            Axis_2.cal       = &Cal.y;
+            Axis_2.cal     = &Cal.y;
             Cur_Params.CenterAxis_2 = Current.y + RelativeJ; //Take from J
             break;
 
         case Y_Z_PLANE:
             Axis_1.current = &Current.y;
             Axis_1.target  = &Target.y;
-            Axis_1.cal       = &Cal.y;
+            Axis_1.cal     = &Cal.y;
             Cur_Params.CenterAxis_1 = Current.y + RelativeJ; //Take from J
 
             Axis_2.current = &Current.z;
             Axis_2.target  = &Target.z;
-            Axis_2.cal       = &Cal.z;
+            Axis_2.cal     = &Cal.z;
             Cur_Params.CenterAxis_2 = Current.z + RelativeK; //Take from K
             break;
 
         case Z_X_PLANE:
             Axis_1.current = &Current.z;
             Axis_1.target  = &Target.z;
-            Axis_1.cal       = &Cal.z;
+            Axis_1.cal     = &Cal.z;
             Cur_Params.CenterAxis_1 = Current.z + RelativeK; //Take from K
 
             Axis_2.current = &Current.x;
             Axis_2.target  = &Target.x;
-            Axis_2.cal       = &Cal.x;
+            Axis_2.cal     = &Cal.x;
             Cur_Params.CenterAxis_2 = Current.x + RelativeI; //Take from I
             break;
 
@@ -87,6 +87,9 @@ void _Curve_Init(void)
             // Send out some warning
             break;
     }
+		
+		*(Axis_1.cal ) = (real32)0;
+		*(Axis_2.cal ) = (real32)0;
 
     if ( fabs(*(Axis_1.current) - Cur_Params.CenterAxis_1) < PRECISION)    //Precision
     {
