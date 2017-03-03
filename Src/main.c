@@ -81,7 +81,8 @@ void Init (void)
 
 int main(void)
 {
-    //uint8_t rcv_bf[38];
+//    uint8_t rcv_bf[500];
+//    uint8_t trm_bf[1] = {'1'};
   /* USER CODE BEGIN 1 */
     Init();
     
@@ -104,7 +105,10 @@ int main(void)
   while (1)
   {
   /* USER CODE END WHILE */
-      
+//      HAL_UART_Receive(&huart2,rcv_bf,500,500);
+      //HAL_Delay(1000);
+//      HAL_UART_Transmit(&huart2,trm_bf,1,500);
+      //HAL_Delay(1000);
   /* USER CODE BEGIN 3 */
     GCode_Intprtr();
   }
@@ -175,9 +179,9 @@ static void MX_TIM3_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 48000;
+  htim3.Init.Prescaler = 96;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 999;
+  htim3.Init.Period = 1000;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
   {
@@ -204,7 +208,7 @@ static void MX_USART2_UART_Init(void)
 {
 
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 38400;//115200
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -256,6 +260,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance==TIM3) //check if the interrupt comes from TIM3
+    {
+        PULSES_OFF;
+        HAL_TIM_Base_Stop_IT(&htim3);
+        isPulseRunning = FALSE;
+    }
+}
 
 /* USER CODE END 4 */
 
@@ -273,6 +286,8 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler */ 
 }
+
+
 
 #ifdef USE_FULL_ASSERT
 

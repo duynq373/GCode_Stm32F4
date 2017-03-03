@@ -40,4 +40,6 @@ boolean _LinearCal (LinearStruct* a, LinearStruct* b, LinearStruct* c);
 extern Coord Current, Target, Cal;
 extern LinearStruct LinearStructMax,LinearStruct_1,LinearStruct_2;
 
+/* Export variables ----------------------------------------------------------*/
+extern uint32_t Linear_Counter;
 #endif

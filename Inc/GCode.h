@@ -28,6 +28,10 @@ void GCode_Intprtr (void);
 
 /* Import variables ----------------------------------------------------------*/
 extern UART_HandleTypeDef huart2;
+extern TIM_HandleTypeDef htim3;
+
+/* Export variables ----------------------------------------------------------*/
+extern boolean isPulseRunning;
 
 /* Macro defines -------------------------------------------------------------*/
 
@@ -40,6 +44,7 @@ extern UART_HandleTypeDef huart2;
 #define     PULSE_X_OFF     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET) 
 #define     PULSE_Y_OFF     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET) 
 #define     PULSE_Z_OFF     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET) 
+#define     PULSES_OFF      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET) 
 
 /* State machine states*/
 #define     GCODE_WAIT          0x01
@@ -52,5 +57,7 @@ extern UART_HandleTypeDef huart2;
 #define     G_02     0x02
 #define     G_03     0x03
 #define     G_NULL   0xFF
-
+/*PULSE WIDTH CALCULATION*/
+#define     DEFAULT_WIDTH       (uint8_t)50   //check prescaler again for exact value
+#define     START_STOP_PERIOD   (uint32_t)50
 #endif  /*__GCODE_H*/
