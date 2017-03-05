@@ -14,7 +14,7 @@
 static void D_InProgress (void);
 static boolean _IsNewCommandReceived(void);
 static real32 FloatExtract (uint8_t index, uint8_t* data);
-static boolean _CalcNextCoord (void);
+static void _CalcNextCoord (void);
 static void _IsStep(Coord* _current, Coord* _cal);
 static void SendPulse (void);
 
@@ -26,7 +26,7 @@ real32 steplength_z = (real32)0.1;        /*    steplength for Z axis*/
 
 static uint8_t GCode_State      = GCODE_WAIT;
 static uint8_t GCode_Command    = G_NULL;
-static boolean InitFlag = FALSE;
+//static boolean InitFlag = FALSE;
 Coord Current, Target, Cal;
     /*Curve Calculation*/
 CurveStruct Axis_1, Axis_2;
@@ -124,12 +124,8 @@ void GCode_Intprtr (void)
 */
 static void D_InProgress (void)
 {
-    InitFlag = TRUE;
-    while (_CalcNextCoord())
-    {
-        _IsStep(&Current, &Cal);
-        SendPulse();
-    }
+//    InitFlag = TRUE;
+    _CalcNextCoord();
 }
 
 /*
@@ -139,9 +135,9 @@ static void D_InProgress (void)
         + Target coordinate value
             
 */
-static boolean _CalcNextCoord (void)
+static void _CalcNextCoord (void)
 {
-    boolean ret = FALSE;
+    //boolean ret = FALSE;
     // STUB
     //GCode_Command = G_02;
     // END STUB
@@ -154,30 +150,29 @@ static boolean _CalcNextCoord (void)
         
         case G_01:
             //Code here
-            if (InitFlag)
+            _LinearCal_Init();
+            while (_LinearCal(&LinearStructMax, &LinearStruct_1, &LinearStruct_2))
             {
-                _LinearCal_Init();
-                InitFlag = FALSE;
+                _IsStep(&Current, &Cal);
+                SendPulse();
             }
-            ret  = _LinearCal(&LinearStructMax, &LinearStruct_1, &LinearStruct_2);
             break;
         
         case G_02:
         case G_03:
             //Code here
-            if (InitFlag)
+            _Curve_Init();
+            while (_CurveCal(&Axis_1, &Axis_2, &Cur_Params))
             {
-                _Curve_Init();
-                InitFlag = FALSE;
+                _IsStep(&Current, &Cal);
+                SendPulse();
             }
-            ret  = _CurveCal(&Axis_1, &Axis_2, &Cur_Params); 
             break;
         
         default:
             GCode_Command = G_NULL;
             break;
     }
-    return ret;
 }
 
 
@@ -289,7 +284,7 @@ static boolean _IsNewCommandReceived(void)
     boolean ret = FALSE;
     uint8_t rcv_bf[UART_BUFFER_LENGTH];
     uint32_t temp = 0;
-    //real32 temp_f = 0;
+    
     if (HAL_UART_Receive(&huart2,rcv_bf,UART_BUFFER_LENGTH,500) == HAL_OK)
     {
         /*Calculate the command*/

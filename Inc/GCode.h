@@ -40,6 +40,7 @@ extern UART_HandleTypeDef huart2;
 #define     PULSE_X_OFF     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET) 
 #define     PULSE_Y_OFF     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET) 
 #define     PULSE_Z_OFF     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET) 
+#define     PULSES_OFF      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET) 
 
 /* State machine states*/
 #define     GCODE_WAIT          0x01
