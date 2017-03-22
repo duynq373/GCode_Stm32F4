@@ -10,7 +10,7 @@
 #include "GCode.h"
 #include "stdlib.h"
 
-  
+
 /* Private function prototypes -----------------------------------------------*/
 static void D_InProgress (void);
 static boolean _IsNewCommandReceived(void);
@@ -290,8 +290,8 @@ static boolean _IsNewCommandReceived(void)
     uint32_t temp = 0;
     #else
     char *strm;
-	uint8_t str_index = 0;
-	uint8_t temp = 0;
+    uint8_t str_index = 0;
+    uint8_t temp = 0;
     uint8_t i;
     #endif
     
