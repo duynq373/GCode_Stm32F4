@@ -8,15 +8,18 @@
  
 /* Includes ------------------------------------------------------------------*/
 #include "GCode.h"
+#include "stdlib.h"
 
   
 /* Private function prototypes -----------------------------------------------*/
 static void D_InProgress (void);
 static boolean _IsNewCommandReceived(void);
-static real32 FloatExtract (uint8_t index, uint8_t* data);
 static void _CalcNextCoord (void);
 static void _IsStep(Coord* _current, Coord* _cal);
 static void SendPulse (void);
+#ifdef  DEFINED_COMMAND_PARSER
+static real32 FloatExtract (uint8_t index, uint8_t* data);
+#endif
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -283,10 +286,18 @@ static boolean _IsNewCommandReceived(void)
 {
     boolean ret = FALSE;
     uint8_t rcv_bf[UART_BUFFER_LENGTH];
+    #ifdef  DEFINED_COMMAND_PARSER
     uint32_t temp = 0;
+    #else
+    char *strm;
+	uint8_t str_index = 0;
+	uint8_t temp = 0;
+    uint8_t i;
+    #endif
     
     if (HAL_UART_Receive(&huart2,rcv_bf,UART_BUFFER_LENGTH,500) == HAL_OK)
     {
+    #ifdef  DEFINED_COMMAND_PARSER
         /*Calculate the command*/
         temp = (rcv_bf[0] - 0x30) *10 + (rcv_bf[1] - 0x30);     // temporary solution for hex and ascii
         switch(temp)
@@ -328,15 +339,213 @@ static boolean _IsNewCommandReceived(void)
         }
         
         ret = TRUE;
+    #else
+        /*G parsing*/
+        if (rcv_bf[str_index] == 'G')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < 3; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+                
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                GCode_Command = atoi (strm);
+                free(strm);
+            }
+        }
+        if (rcv_bf[str_index] == ' ')
+        {
+            str_index++;
+        }
+        /*X parsing*/
+        if (rcv_bf[str_index] == 'X')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < str_index + 10; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                Target.x = atof (strm);
+                free(strm);
+            }
+        }
+        if (rcv_bf[str_index] == ' ')
+        {
+            str_index++;
+        }
+        /*Y parsing*/
+        if (rcv_bf[str_index] == 'Y')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < str_index + 10; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                Target.y = atof (strm);
+                free(strm);
+            }
+        }
+        if (rcv_bf[str_index] == ' ')
+        {
+            str_index++;
+        }
+        /*Z parsing*/
+        if (rcv_bf[str_index] == 'Z')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < str_index + 10; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                Target.z = atof (strm);
+                free(strm);
+            }
+        }
+        if (rcv_bf[str_index] == ' ')
+        {
+            str_index++;
+        }
+        /*I parsing*/
+        if (rcv_bf[str_index] == 'I')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < str_index + 10; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                RelativeI = atof (strm);
+                free(strm);
+            }
+        }
+        if (rcv_bf[str_index] == ' ')
+        {
+            str_index++;
+        }
+        /*J parsing*/
+        if (rcv_bf[str_index] == 'I')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < str_index + 10; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                RelativeJ = atof (strm);
+                free(strm);
+            }
+        }
+        if (rcv_bf[str_index] == ' ')
+        {
+            str_index++;
+        }
+        /*K parsing*/
+        if (rcv_bf[str_index] == 'K')
+        {
+            temp = 0;
+            for (i = str_index + 1; i < str_index + 10; i++)
+            {
+                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
+                {
+                    temp++;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            if (temp != 0)
+            {
+                str_index = str_index + temp + 1;
+                strm = (char*) malloc(temp);
+                memcpy (strm, &rcv_bf[str_index - temp], temp);
+                RelativeK = atof (strm);
+                free(strm);
+            }
+        }
+        //F
+        ret = TRUE;
+    #endif
     }
     else
     {
         /*Do nothing*/
     }
-    
+   
     return ret;
 }
 
+#ifdef  DEFINED_COMMAND_PARSER
 static real32 FloatExtract (uint8_t index, uint8_t* data)
 {
     real32 ret;
@@ -352,3 +561,4 @@ static real32 FloatExtract (uint8_t index, uint8_t* data)
     }
     
 }
+#endif

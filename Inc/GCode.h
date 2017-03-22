@@ -32,7 +32,7 @@ extern UART_HandleTypeDef huart2;
 /* Macro defines -------------------------------------------------------------*/
 
 /*UART BUFFER*/
-#define     UART_BUFFER_LENGTH      38
+#define     UART_BUFFER_LENGTH      20
 /* Function like macro*/
 #define     PULSE_X_ON      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET) 
 #define     PULSE_Y_ON      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET) 
@@ -53,5 +53,8 @@ extern UART_HandleTypeDef huart2;
 #define     G_02     0x02
 #define     G_03     0x03
 #define     G_NULL   0xFF
+
+/* Runtime option*/
+//#define     DEFINED_COMMAND_PARSER    //comment for orginal command parser
 
 #endif  /*__GCODE_H*/
