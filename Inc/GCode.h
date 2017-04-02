@@ -28,6 +28,9 @@ void GCode_Intprtr (void);
 
 /* Import variables ----------------------------------------------------------*/
 extern UART_HandleTypeDef huart2;
+extern uint8_t Rx_data[2], Rx_Buffer[50], Transfer_cplt;
+extern uint8_t Tx_XON[];
+extern uint8_t Tx_XOFF[];
 
 /* Macro defines -------------------------------------------------------------*/
 

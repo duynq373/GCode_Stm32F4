@@ -46,6 +46,12 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+//variables need to be declared at the beginning 
+uint8_t Rx_indx, Rx_data[2], Rx_Buffer[50], Transfer_cplt;
+uint8_t Tx_XON[] = {0x11};
+uint8_t Tx_XOFF[] = {0x13};
+
+
 
 /* USER CODE END PV */
 
@@ -81,7 +87,6 @@ void Init (void)
 
 int main(void)
 {
-    //uint8_t rcv_bf[38];
   /* USER CODE BEGIN 1 */
     Init();
     
@@ -93,10 +98,12 @@ int main(void)
     //Cur_Params.Plane
   /* USER CODE END 1 */
 
-  
+
+	HAL_Delay(1000);
+	HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
 
   /* USER CODE BEGIN 2 */
-     
+    HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -104,7 +111,14 @@ int main(void)
   while (1)
   {
   /* USER CODE END WHILE */
-      
+//      if (Transfer_cplt == 1)
+//      {
+//     	HAL_UART_Transmit_IT(&huart2,Tx_XOFF,1);
+//      	Transfer_cplt = 0;
+//		HAL_Delay(1000);
+//		HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
+//        HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
+//      }
   /* USER CODE BEGIN 3 */
     GCode_Intprtr();
   }
@@ -204,7 +218,7 @@ static void MX_USART2_UART_Init(void)
 {
 
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 38400;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -273,6 +287,30 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler */ 
 }
 
+//Interrupt callback routine
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    //uint8_t i;
+	
+    if (huart->Instance == USART2)  //current UART
+    {
+        if (Rx_indx == 0) 
+        {
+            memset(Rx_Buffer, 0, 50);                             	//clear Rx_Buffer before receiving new data	
+        }  
+		if (Rx_data[0]!= 0x0A)                               		//if received data different from ascii 13 (enter = cr (13) + lf (12) )
+        {
+            Rx_Buffer[Rx_indx++] = Rx_data[0];                    	//add data to Rx_Buffer
+        }
+        else                                                    	//if received data = 13
+        {
+            Rx_indx = 0;
+            Transfer_cplt = 1;                                      //transfer complete, data is ready to read
+        }
+
+        HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
+    }
+}
 #ifdef USE_FULL_ASSERT
 
 /**

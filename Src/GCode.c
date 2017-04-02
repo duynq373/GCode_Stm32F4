@@ -10,7 +10,7 @@
 #include "GCode.h"
 #include "stdlib.h"
 
-
+  
 /* Private function prototypes -----------------------------------------------*/
 static void D_InProgress (void);
 static boolean _IsNewCommandReceived(void);
@@ -82,7 +82,7 @@ void GCode_Intprtr (void)
    
     // GCode_State = GCODE_IN_PROGRESS;
     //END STUB
-    uint8_t trm_bf = 1;
+    //uint8_t trm_bf = 1;
     switch (GCode_State)
     {
         case GCODE_WAIT:
@@ -108,7 +108,9 @@ void GCode_Intprtr (void)
         case GCODE_DONE:
             //code here
             // send feedback to PC
-            HAL_UART_Transmit(&huart2,&trm_bf,1,500);
+            //HAL_UART_Transmit(&huart2,&trm_bf,1,500);
+            HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
+			HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
             GCode_State = GCODE_WAIT;
             break;
         
@@ -149,7 +151,7 @@ static void _CalcNextCoord (void)
     {
         case G_00:
             //Code here
-            break;
+            //break;  // Implement later, now using the same algorithm as G_01
         
         case G_01:
             //Code here
@@ -285,18 +287,20 @@ static void SendPulse (void)
 static boolean _IsNewCommandReceived(void)
 {
     boolean ret = FALSE;
-    uint8_t rcv_bf[UART_BUFFER_LENGTH];
     #ifdef  DEFINED_COMMAND_PARSER
+	uint8_t rcv_bf[UART_BUFFER_LENGTH];
     uint32_t temp = 0;
     #else
     char *strm;
-    uint8_t str_index = 0;
-    uint8_t temp = 0;
+	uint8_t str_index = 0;
+	uint8_t temp = 0;
     uint8_t i;
     #endif
     
-    if (HAL_UART_Receive(&huart2,rcv_bf,UART_BUFFER_LENGTH,500) == HAL_OK)
+    if (Transfer_cplt == 1)
     {
+		HAL_UART_Transmit_IT(&huart2,Tx_XOFF,1);
+		Transfer_cplt = 0;
     #ifdef  DEFINED_COMMAND_PARSER
         /*Calculate the command*/
         temp = (rcv_bf[0] - 0x30) *10 + (rcv_bf[1] - 0x30);     // temporary solution for hex and ascii
@@ -340,201 +344,212 @@ static boolean _IsNewCommandReceived(void)
         
         ret = TRUE;
     #else
-        /*G parsing*/
-        if (rcv_bf[str_index] == 'G')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < 3; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-                
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                GCode_Command = atoi (strm);
-                free(strm);
-            }
-        }
-        if (rcv_bf[str_index] == ' ')
-        {
-            str_index++;
-        }
-        /*X parsing*/
-        if (rcv_bf[str_index] == 'X')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < str_index + 10; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                Target.x = atof (strm);
-                free(strm);
-            }
-        }
-        if (rcv_bf[str_index] == ' ')
-        {
-            str_index++;
-        }
-        /*Y parsing*/
-        if (rcv_bf[str_index] == 'Y')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < str_index + 10; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                Target.y = atof (strm);
-                free(strm);
-            }
-        }
-        if (rcv_bf[str_index] == ' ')
-        {
-            str_index++;
-        }
-        /*Z parsing*/
-        if (rcv_bf[str_index] == 'Z')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < str_index + 10; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                Target.z = atof (strm);
-                free(strm);
-            }
-        }
-        if (rcv_bf[str_index] == ' ')
-        {
-            str_index++;
-        }
-        /*I parsing*/
-        if (rcv_bf[str_index] == 'I')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < str_index + 10; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                RelativeI = atof (strm);
-                free(strm);
-            }
-        }
-        if (rcv_bf[str_index] == ' ')
-        {
-            str_index++;
-        }
-        /*J parsing*/
-        if (rcv_bf[str_index] == 'I')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < str_index + 10; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                RelativeJ = atof (strm);
-                free(strm);
-            }
-        }
-        if (rcv_bf[str_index] == ' ')
-        {
-            str_index++;
-        }
-        /*K parsing*/
-        if (rcv_bf[str_index] == 'K')
-        {
-            temp = 0;
-            for (i = str_index + 1; i < str_index + 10; i++)
-            {
-                if (((rcv_bf[i] > 0x29) && (rcv_bf[i] < 0x40)) || (rcv_bf[i] == '-') || (rcv_bf[i] == '.') )
-                {
-                    temp++;
-                }
-                else 
-                {
-                    break;
-                }
-            }
-            if (temp != 0)
-            {
-                str_index = str_index + temp + 1;
-                strm = (char*) malloc(temp);
-                memcpy (strm, &rcv_bf[str_index - temp], temp);
-                RelativeK = atof (strm);
-                free(strm);
-            }
-        }
-        //F
-        ret = TRUE;
+		if (Rx_Buffer[str_index] != '(')
+		{
+	        /*G parsing*/
+	        if (Rx_Buffer[str_index] == 'G')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < 3; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	                
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                GCode_Command = atoi (strm);
+	                free(strm);
+	            }
+	        }
+	        if (Rx_Buffer[str_index] == ' ')
+	        {
+	            str_index++;
+	        }
+	        /*X parsing*/
+	        if (Rx_Buffer[str_index] == 'X')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < str_index + 10; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                Target.x = atof (strm);
+	                free(strm);
+	            }
+	        }
+	        if (Rx_Buffer[str_index] == ' ')
+	        {
+	            str_index++;
+	        }
+	        /*Y parsing*/
+	        if (Rx_Buffer[str_index] == 'Y')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < str_index + 10; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                Target.y = atof (strm);
+	                free(strm);
+	            }
+	        }
+	        if (Rx_Buffer[str_index] == ' ')
+	        {
+	            str_index++;
+	        }
+	        /*Z parsing*/
+	        if (Rx_Buffer[str_index] == 'Z')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < str_index + 10; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                Target.z = atof (strm);
+	                free(strm);
+	            }
+	        }
+	        if (Rx_Buffer[str_index] == ' ')
+	        {
+	            str_index++;
+	        }
+	        /*I parsing*/
+	        if (Rx_Buffer[str_index] == 'I')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < str_index + 10; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                RelativeI = atof (strm);
+	                free(strm);
+	            }
+	        }
+	        if (Rx_Buffer[str_index] == ' ')
+	        {
+	            str_index++;
+	        }
+	        /*J parsing*/
+	        if (Rx_Buffer[str_index] == 'I')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < str_index + 10; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                RelativeJ = atof (strm);
+	                free(strm);
+	            }
+	        }
+	        if (Rx_Buffer[str_index] == ' ')
+	        {
+	            str_index++;
+	        }
+	        /*K parsing*/
+	        if (Rx_Buffer[str_index] == 'K')
+	        {
+	            temp = 0;
+	            for (i = str_index + 1; i < str_index + 10; i++)
+	            {
+	                if (((Rx_Buffer[i] > 0x29) && (Rx_Buffer[i] < 0x40)) || (Rx_Buffer[i] == '-') || (Rx_Buffer[i] == '.') )
+	                {
+	                    temp++;
+	                }
+	                else 
+	                {
+	                    break;
+	                }
+	            }
+	            if (temp != 0)
+	            {
+	                str_index = str_index + temp + 1;
+	                strm = (char*) malloc(temp);
+	                memcpy (strm, &Rx_Buffer[str_index - temp], temp);
+	                RelativeK = atof (strm);
+	                free(strm);
+	            }
+	        }
+	        //F
+	        ret = TRUE;
+		}
+		else
+		{
+			/*When a line is started with (, then it is a comment and processing is ignored*/
+			/*Send XON to start receiving new command*/
+			HAL_Delay(50);
+			HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
+            HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
+		}
     #endif
     }
     else
