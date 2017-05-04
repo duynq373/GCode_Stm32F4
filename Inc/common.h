@@ -16,7 +16,7 @@
 
 /* Data types ---------------------------------------------------------------*/
 typedef float           real32;
-typedef signed char     boolean;
+typedef unsigned char   boolean;
 
 #define     TRUE    1
 #define     FALSE   0

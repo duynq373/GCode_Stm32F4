@@ -23,9 +23,9 @@ static real32 FloatExtract (uint8_t index, uint8_t* data);
 
 /* Private variables ---------------------------------------------------------*/
 
-real32 steplength_x = (real32)0.01;       /*    steplength for X axis*/
-real32 steplength_y = (real32)0.1;        /*    steplength for Y axis*/
-real32 steplength_z = (real32)0.1;        /*    steplength for Z axis*/
+real32 steplength_x = (real32)0.005;       /*    steplength for X axis*/
+real32 steplength_y = (real32)0.005;        /*    steplength for Y axis*/
+real32 steplength_z = (real32)0.005;        /*    steplength for Z axis*/
 
 static uint8_t GCode_State      = GCODE_WAIT;
 static uint8_t GCode_Command    = G_NULL;
@@ -83,6 +83,7 @@ void GCode_Intprtr (void)
     // GCode_State = GCODE_IN_PROGRESS;
     //END STUB
     //uint8_t trm_bf = 1;
+    uint8_t retry_f = 0;
     switch (GCode_State)
     {
         case GCODE_WAIT:
@@ -107,9 +108,20 @@ void GCode_Intprtr (void)
         
         case GCODE_DONE:
             //code here
-            // send feedback to PC
-            //HAL_UART_Transmit(&huart2,&trm_bf,1,500);
-            HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
+            // send feedback to PC: use while here to ensure the Tx_ON is sent properly
+			while (retry_f < 3)
+			{
+				if(HAL_OK != HAL_UART_Transmit_IT(&huart2,Tx_XON,1))
+				{
+					HAL_Delay(10);
+				}
+				else 
+				{
+					break;
+				}
+				retry_f++;
+			}
+			
 			HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
             GCode_State = GCODE_WAIT;
             break;
@@ -242,39 +254,65 @@ static void _IsStep (Coord* _current, Coord* _cal)
 static void SendPulse (void)
 {
     // Get speed parameter from PC and calculate the delay time
-//    uint16_t delay_time = 1;
+    //    uint16_t delay_time = 1;
     //Check again for positive pulse and negative pulse
-    
+    volatile uint32_t temp = 0;
     if (stepFlag_x == TRUE)
     {
         PULSE_X_ON;
-        PULSE_X_ON;
-        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
+//        PULSE_X_ON;
     }
     
     if (stepFlag_y == TRUE)
     {
         PULSE_Y_ON;
-        PULSE_Y_ON;
-        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
+//        PULSE_Y_ON;
     }
     if (stepFlag_z == TRUE)
     {
         PULSE_Z_ON;
-        PULSE_Z_ON;
-        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
+//        PULSE_Z_ON;
     }
     
+    while (temp < 50)
+    {
+        temp++;
+    }
+    temp = 0;
 //    HAL_Delay(delay_time);
     PULSE_X_OFF;
-    PULSE_X_OFF;
-    PULSE_X_OFF;
-    PULSE_Y_OFF;
-    PULSE_Y_OFF;
+//    PULSE_X_OFF;
+//    PULSE_X_OFF;
+//    PULSE_Y_OFF;
+//    PULSE_Y_OFF;
     PULSE_Y_OFF;
     PULSE_Z_OFF;
-    PULSE_Z_OFF;
-    PULSE_Z_OFF;
+//    PULSE_Z_OFF;
+//    PULSE_Z_OFF;
 //    HAL_Delay(delay_time);
         
     // Reinit the step flags
@@ -299,7 +337,8 @@ static boolean _IsNewCommandReceived(void)
     
     if (Transfer_cplt == 1)
     {
-		HAL_UART_Transmit_IT(&huart2,Tx_XOFF,1);
+		while (HAL_OK != HAL_UART_Transmit_IT(&huart2,Tx_XOFF,1))
+		{;}
 		Transfer_cplt = 0;
     #ifdef  DEFINED_COMMAND_PARSER
         /*Calculate the command*/
