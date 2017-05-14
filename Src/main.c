@@ -99,11 +99,11 @@ int main(void)
   /* USER CODE END 1 */
 
 
-	HAL_Delay(1000);
-	HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
+    HAL_Delay(1000);
+    HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
 
   /* USER CODE BEGIN 2 */
-    HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
+    HAL_UART_Receive_IT(&huart2, Rx_data, 1);   //activate UART receive interrupt every time
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -113,11 +113,11 @@ int main(void)
   /* USER CODE END WHILE */
 //      if (Transfer_cplt == 1)
 //      {
-//     	HAL_UART_Transmit_IT(&huart2,Tx_XOFF,1);
-//      	Transfer_cplt = 0;
-//		HAL_Delay(1000);
-//		HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
-//        HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
+//          HAL_UART_Transmit_IT(&huart2,Tx_XOFF,1);
+//          Transfer_cplt = 0;
+//          HAL_Delay(1000);
+//          HAL_UART_Transmit_IT(&huart2,Tx_XON,1);
+//          HAL_UART_Receive_IT(&huart2, Rx_data, 1);   //activate UART receive interrupt every time
 //      }
   /* USER CODE BEGIN 3 */
     GCode_Intprtr();
@@ -249,7 +249,14 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  /*For Leds*/
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET);
+  /*For actual outputs:
+    X: PE7 -> , PE8 ->
+    Y: PE9 -> , PE10 ->
+    Z: PE11 -> , PE12 ->
+  */
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PD12 PD13 PD14 */
   GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14;
@@ -257,6 +264,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PE7 PE8 PE9 PE10 PE11 PE12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
   
   /* UART TX GPIO pin configuration  */
   GPIO_InitStruct.Pin       = GPIO_PIN_2;
@@ -291,24 +305,24 @@ void Error_Handler(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     //uint8_t i;
-	
+
     if (huart->Instance == USART2)  //current UART
     {
         if (Rx_indx == 0) 
         {
-            memset(Rx_Buffer, 0, 50);                             	//clear Rx_Buffer before receiving new data	
+            memset(Rx_Buffer, 0, 50);                               //clear Rx_Buffer before receiving new data
         }  
-		if (Rx_data[0]!= 0x0A)                               		//if received data different from ascii 13 (enter = cr (13) + lf (12) )
+        if (Rx_data[0]!= 0x0A)                                      //if received data different from ascii 13 (enter = cr (13) + lf (12) )
         {
-            Rx_Buffer[Rx_indx++] = Rx_data[0];                    	//add data to Rx_Buffer
+            Rx_Buffer[Rx_indx++] = Rx_data[0];                      //add data to Rx_Buffer
         }
-        else                                                    	//if received data = 13
+        else                                                        //if received data = 13
         {
             Rx_indx = 0;
             Transfer_cplt = 1;                                      //transfer complete, data is ready to read
         }
 
-        HAL_UART_Receive_IT(&huart2, Rx_data, 1);	//activate UART receive interrupt every time
+        HAL_UART_Receive_IT(&huart2, Rx_data, 1);                   //activate UART receive interrupt every time
     }
 }
 #ifdef USE_FULL_ASSERT

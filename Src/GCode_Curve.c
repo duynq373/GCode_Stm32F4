@@ -87,9 +87,9 @@ void _Curve_Init(void)
             // Send out some warning
             break;
     }
-		
-		*(Axis_1.cal ) = (real32)0;
-		*(Axis_2.cal ) = (real32)0;
+
+        *(Axis_1.cal ) = (real32)0;
+        *(Axis_2.cal ) = (real32)0;
 
     if ( fabs(*(Axis_1.current) - Cur_Params.CenterAxis_1) < PRECISION)    //Precision
     {
